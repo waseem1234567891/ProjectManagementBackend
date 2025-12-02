@@ -217,10 +217,6 @@ void testLogin_InCorrectPassword() throws Exception {
             .andExpect(jsonPath("$.message").value("Wrong Password"));
 }
 
-    @Test
-    void testThatFails() {
-        // This test will fail intentionally
-        fail("This test is supposed to fail!");
-    }
+
 
 }
