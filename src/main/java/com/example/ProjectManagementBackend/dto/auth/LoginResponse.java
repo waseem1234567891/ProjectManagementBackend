@@ -1,4 +1,4 @@
-package dto.auth;
+package com.example.ProjectManagementBackend.dto.auth;
 
 public class LoginResponse {
     private String token;

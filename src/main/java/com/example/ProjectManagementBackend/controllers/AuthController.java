@@ -1,12 +1,11 @@
 package com.example.ProjectManagementBackend.controllers;
 
 import com.example.ProjectManagementBackend.services.UserService;
-import dto.auth.LoginRequestDto;
-import dto.auth.RegisterationDto;
+import com.example.ProjectManagementBackend.dto.auth.LoginRequestDto;
+import com.example.ProjectManagementBackend.dto.auth.RegisterationDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

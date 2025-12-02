@@ -9,9 +9,9 @@ import com.example.ProjectManagementBackend.models.CustomUserDetail;
 import com.example.ProjectManagementBackend.models.User;
 import com.example.ProjectManagementBackend.respositories.UserRepo;
 import com.example.ProjectManagementBackend.util.JwtUtil;
-import dto.auth.LoginRequestDto;
-import dto.auth.LoginResponse;
-import dto.auth.RegisterationDto;
+import com.example.ProjectManagementBackend.dto.auth.LoginRequestDto;
+import com.example.ProjectManagementBackend.dto.auth.LoginResponse;
+import com.example.ProjectManagementBackend.dto.auth.RegisterationDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service

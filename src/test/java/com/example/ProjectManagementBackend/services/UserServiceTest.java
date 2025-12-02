@@ -7,9 +7,9 @@ import com.example.ProjectManagementBackend.models.CustomUserDetail;
 import com.example.ProjectManagementBackend.models.User;
 import com.example.ProjectManagementBackend.respositories.UserRepo;
 import com.example.ProjectManagementBackend.util.JwtUtil;
-import dto.auth.LoginRequestDto;
-import dto.auth.LoginResponse;
-import dto.auth.RegisterationDto;
+import com.example.ProjectManagementBackend.dto.auth.LoginRequestDto;
+import com.example.ProjectManagementBackend.dto.auth.LoginResponse;
+import com.example.ProjectManagementBackend.dto.auth.RegisterationDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -52,7 +52,7 @@ public class UserServiceTest {
         dto.setFirstName("John");
         dto.setLastName("Doe");
         dto.setEmail("john@gmail.com");
-        dto.setPassword("1234");
+        dto.setPassword("tumbin1234");
         dto.setRole("USER");
 
         when(userRepo.findByEmail(dto.getEmail())).thenReturn(Optional.empty());
@@ -64,7 +64,7 @@ public class UserServiceTest {
         assertEquals("User is created Successfully", response.getBody());
 
         verify(userRepo).save(any(User.class));
-        verify(passwordEncoder).encode("1234");
+        verify(passwordEncoder).encode("tumbin1234");
     }
 
     @Test
