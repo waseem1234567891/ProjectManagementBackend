@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        maven 'MAVEN_HOME'   // Name from Jenkins Global Tool Configuration
-        jdk 'JAVA_HOME'     // Or your Java version
+        maven 'MAVEN_HOME'   // Replace with your Maven tool name in Jenkins
+        jdk 'JAVA_HOME'      // Replace with your JDK tool name in Jenkins
     }
 
     stages {
@@ -21,7 +21,14 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                bat 'mvn test'
+                // Run tests but don't fail the pipeline immediately if tests fail
+                bat 'mvn test || exit 0'
+            }
+            post {
+                always {
+                    // Publish JUnit test results
+                    junit '**/target/surefire-reports/*.xml'
+                }
             }
         }
 
@@ -35,6 +42,9 @@ pipeline {
     post {
         success {
             echo 'Build SUCCESSFUL ✔'
+        }
+        unstable {
+            echo 'Build UNSTABLE ⚠ Some tests failed'
         }
         failure {
             echo 'Build FAILED ❌'
