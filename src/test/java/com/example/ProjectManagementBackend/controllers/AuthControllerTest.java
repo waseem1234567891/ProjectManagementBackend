@@ -19,6 +19,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static com.jayway.jsonpath.internal.path.PathCompiler.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -215,5 +216,11 @@ void testLogin_InCorrectPassword() throws Exception {
             .andExpect(status().isUnauthorized()) // HTTP 401
             .andExpect(jsonPath("$.message").value("Wrong Password"));
 }
+
+    @Test
+    void testThatFails() {
+        // This test will fail intentionally
+        fail("This test is supposed to fail!");
+    }
 
 }
