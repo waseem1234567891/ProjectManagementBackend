@@ -15,10 +15,10 @@ services:
       - app-network
 
   app:
-    build: .
+    image: project-management-backend:latest   # use Jenkins-built image
     container_name: project-backend
     ports:
-      - "8585:8585"   # updated port
+      - "8585:8585"
     environment:
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
@@ -26,7 +26,7 @@ services:
     networks:
       - app-network
     volumes:
-      - ./uploads:/app/uploads  # optional if your app stores files
+      - ./uploads:/app/uploads
 
 volumes:
   mysql_data:
