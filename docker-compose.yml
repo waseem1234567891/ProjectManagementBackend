@@ -14,8 +14,8 @@ services:
     networks:
       - app-network
 
-  app:
-    image: project-management-backend:latest   # use Jenkins-built image
+  backend:
+    image: project-management-backend:latest   # Jenkins-built backend image
     container_name: project-backend
     ports:
       - "8585:8585"
@@ -26,7 +26,19 @@ services:
     networks:
       - app-network
     volumes:
-      - ./uploads:/app/uploads
+      - ./backend/uploads:/app/uploads  # optional if your backend stores files
+
+  frontend:
+    image: project-frontend:latest          # Jenkins-built frontend image
+    container_name: project-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://backend:8585
+    depends_on:
+      - backend
+    networks:
+      - app-network
 
 volumes:
   mysql_data:
