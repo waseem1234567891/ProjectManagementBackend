@@ -37,7 +37,7 @@ public class UserService {
     private JwtUtil jwtUtil;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
+//register a user
     public ResponseEntity<?> registerAUser(RegisterationDto registerationDto)
     {
         Optional<User> byEmail = userRepo.findByEmail(registerationDto.getEmail());
@@ -50,7 +50,7 @@ public class UserService {
         user.setLastName(registerationDto.getLastName());
         user.setEmail(registerationDto.getEmail());
         user.setPassword(passwordEncoder.encode(registerationDto.getPassword()));
-        user.setRole(registerationDto.getRole());
+        user.setRole("USER");
         userRepo.save(user);
         return ResponseEntity.status(201).body("User is created Successfully");
     }

@@ -20,8 +20,7 @@ public class RegisterationDto {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotBlank(message = "Role is required")
-    private String role;
+
 
     // getters and setters...
     public String getFirstName() { return firstName; }
@@ -36,6 +35,5 @@ public class RegisterationDto {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+
 }
