@@ -53,11 +53,7 @@ public class UserServiceTest {
         dto.setLastName("Doe");
         dto.setEmail("john@gmail.com");
         dto.setPassword("tumbin1234");
-<<<<<<< HEAD
 
-=======
-       
->>>>>>> e8aaa06faf44efcade1a09fd8eeb5ba0405ce5da
 
         when(userRepo.findByEmail(dto.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(dto.getPassword())).thenReturn("encodedPassword");
