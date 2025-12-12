@@ -1,6 +1,7 @@
 package com.example.ProjectManagementBackend.services;
 
 import com.example.ProjectManagementBackend.exceptions.EmailAlreadyExistException;
+import com.example.ProjectManagementBackend.exceptions.EmailNotVerifiedException;
 import com.example.ProjectManagementBackend.exceptions.PasswordInCorrectException;
 import com.example.ProjectManagementBackend.exceptions.UserNotFoundException;
 import com.example.ProjectManagementBackend.models.CustomUserDetail;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -132,6 +134,26 @@ public class UserServiceTest {
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
         assertThrows(PasswordInCorrectException.class, () -> userService.login(dto));
+    }
+
+    @Test
+    void testLogin_EmailNotVerified() {
+        LoginRequestDto dto = new LoginRequestDto();
+        dto.setEmail("test@gmail.com");
+        dto.setPassword("Pass123");
+
+        // Mock user (not verified)
+        User user = new User();
+        user.setEmail("test@gmail.com");
+        user.setPassword("encodedpass");
+        user.setEnabled(false);  // 👈 KEY: user is NOT verified
+        when(userRepo.findByEmail(dto.getEmail())).thenReturn(Optional.of(user));
+
+        // Simulate Spring Security blocking login
+        when(authenticationManager.authenticate(any()))
+                .thenThrow(new DisabledException("User is disabled"));
+
+        assertThrows(EmailNotVerifiedException.class, () -> userService.login(dto));
     }
 
 

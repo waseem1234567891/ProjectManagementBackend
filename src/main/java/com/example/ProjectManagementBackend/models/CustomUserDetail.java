@@ -13,6 +13,7 @@ public class CustomUserDetail implements UserDetails {
     private String email;
     private String password;
     private  String role;
+    private boolean enabled;
     private  Collection<? extends GrantedAuthority> authorities;
 
     public CustomUserDetail(User user) {
@@ -20,6 +21,7 @@ public class CustomUserDetail implements UserDetails {
         this.email = user.getEmail();
         this.password = user.getPassword();
         this.role = user.getRole();
+        this.enabled = user.isEnabled();
         this.authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
     }
 
@@ -44,5 +46,14 @@ public class CustomUserDetail implements UserDetails {
 
     public Long getId() {
         return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }

@@ -1,6 +1,7 @@
 package com.example.ProjectManagementBackend.controllers;
 
 import com.example.ProjectManagementBackend.exceptions.EmailAlreadyExistException;
+import com.example.ProjectManagementBackend.exceptions.EmailNotVerifiedException;
 import com.example.ProjectManagementBackend.exceptions.PasswordInCorrectException;
 import com.example.ProjectManagementBackend.exceptions.UserNotFoundException;
 import com.example.ProjectManagementBackend.services.UserService;
@@ -216,6 +217,26 @@ void testLogin_InCorrectPassword() throws Exception {
             .andExpect(status().isUnauthorized()) // HTTP 401
             .andExpect(jsonPath("$.message").value("Wrong Password"));
 }
+
+    //  test: Email not verified
+    @Test
+    void testLogin_EmailNotVerified() throws Exception {
+        // Mock UserService to throw Email not verified Exce
+        when(userService.login(any(LoginRequestDto.class)))
+                .thenThrow(new EmailNotVerifiedException("Please verify your email before logging in."));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "john@gmail.com",
+                              "password": "123456"
+                            }
+                            """))
+                .andExpect(status().isForbidden()) // HTTP 401
+                .andExpect(jsonPath("$.message").value("Please verify your email before logging in."));
+    }
+
 
 
 

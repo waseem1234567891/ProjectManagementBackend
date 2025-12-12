@@ -5,10 +5,12 @@ public class LoginResponse {
     private Long userId;
     private String role;
 
+
     public LoginResponse(String token, Long userId, String role) {
         this.token = token;
         this.userId = userId;
         this.role = role;
+
     }
 
     public LoginResponse() {
@@ -37,4 +39,6 @@ public class LoginResponse {
     public void setRole(String role) {
         this.role = role;
     }
+
+
 }
