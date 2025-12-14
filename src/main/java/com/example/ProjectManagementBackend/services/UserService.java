@@ -3,10 +3,7 @@ package com.example.ProjectManagementBackend.services;
 
 
 import com.example.ProjectManagementBackend.dto.user.UserProfileDto;
-import com.example.ProjectManagementBackend.exceptions.EmailAlreadyExistException;
-import com.example.ProjectManagementBackend.exceptions.EmailNotVerifiedException;
-import com.example.ProjectManagementBackend.exceptions.PasswordInCorrectException;
-import com.example.ProjectManagementBackend.exceptions.UserNotFoundException;
+import com.example.ProjectManagementBackend.exceptions.*;
 import com.example.ProjectManagementBackend.models.CustomUserDetail;
 import com.example.ProjectManagementBackend.models.PasswordResetToken;
 import com.example.ProjectManagementBackend.models.User;
@@ -212,19 +209,19 @@ public class UserService {
         passwordResetTokenRepo.delete(resetToken);
         return ResponseEntity.ok("Password updated successfully ");
     }
-
+    //get user profile
     public ResponseEntity<?> getUserProfile() {
 
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(new UserProfileDto(currentUser));
     }
-
+// get current login user
 public User getCurrentUser()
 {
     Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
     if(authentication==null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser"))
     {
-        throw new RuntimeException("Unauthenticated");
+        throw new AccessDeniedException("Unauthenticated");
     }
     Object principle=authentication.getPrincipal();
     String email;
