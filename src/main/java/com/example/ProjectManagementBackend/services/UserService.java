@@ -44,11 +44,11 @@ public class UserService {
 
     @Autowired
     private VerificationTokenRepository tokenRepository;
+
     @Autowired
     private EmailService emailService;
 
-    @Autowired
-    private JavaMailSender mailSender;
+
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -209,6 +209,7 @@ public class UserService {
         passwordResetTokenRepo.delete(resetToken);
         return ResponseEntity.ok("Password updated successfully ");
     }
+
     //get user profile
     public ResponseEntity<?> getUserProfile() {
 
@@ -238,5 +239,23 @@ public User getCurrentUser()
     }else {
         throw new UserNotFoundException("user not found");
     }
+    }
+
+    public ResponseEntity<?> updateUserProfile(UserProfileDto dto) {
+        User currentUser = getCurrentUser();
+
+        if (dto.getFirstName() != null) {
+            currentUser.setFirstName(dto.getFirstName());
+        }
+        if (dto.getLastName() != null) {
+            currentUser.setLastName(dto.getLastName());
+        }
+        if (dto.getEmail() != null) {
+            currentUser.setEmail(dto.getEmail());
+        }
+
+        userRepo.save(currentUser);
+
+        return ResponseEntity.ok(new UserProfileDto(currentUser));
     }
 }

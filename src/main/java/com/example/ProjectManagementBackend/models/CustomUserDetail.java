@@ -40,6 +40,12 @@ public class CustomUserDetail implements UserDetails {
         return email;
     }
 
+
+
+
+
+
+
     public String getRole() {
         return role;
     }
