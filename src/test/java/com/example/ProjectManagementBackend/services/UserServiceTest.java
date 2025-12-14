@@ -269,6 +269,29 @@ public class UserServiceTest {
                 () -> userService.getCurrentUser());
     }
 
+    @Test
+    void testUpdateUserProfile_partialUpdate() {
+        User user = new User();
+        user.setFirstName("OldFirst");
+        user.setLastName("OldLast");
+        user.setEmail("old@example.com");
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("old@example.com");
+        when(userRepo.findByEmail("old@example.com")).thenReturn(Optional.of(user));
+        when(userRepo.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        UserProfileDto dto = new UserProfileDto();
+        dto.setFirstName("NewFirst");
+
+        ResponseEntity<?> response = userService.updateUserProfile(dto);
+        UserProfileDto updated = (UserProfileDto) response.getBody();
+
+        assertEquals("NewFirst", updated.getFirstName());
+        assertEquals("OldLast", updated.getLastName());
+        assertEquals("old@example.com", updated.getEmail());
+    }
 
 
 }
