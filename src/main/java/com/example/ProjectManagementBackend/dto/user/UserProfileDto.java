@@ -8,6 +8,9 @@ public class UserProfileDto {
     private String email;
     private String role;
 
+    public UserProfileDto() {
+    }
+
     public UserProfileDto(User user) {
         this.firstName= user.getFirstName();
         this.lastName= user.getLastName();

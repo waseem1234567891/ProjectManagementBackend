@@ -1,12 +1,14 @@
 package com.example.ProjectManagementBackend.dto.auth;
 
+import java.util.UUID;
+
 public class LoginResponse {
     private String token;
-    private Long userId;
+    private UUID userId;
     private String role;
 
 
-    public LoginResponse(String token, Long userId, String role) {
+    public LoginResponse(String token, UUID userId, String role) {
         this.token = token;
         this.userId = userId;
         this.role = role;
@@ -24,11 +26,11 @@ public class LoginResponse {
         this.token = token;
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 

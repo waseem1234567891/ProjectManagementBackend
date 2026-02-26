@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Component
@@ -26,11 +27,11 @@ public class JwtUtil {
     }
 
     // Generate token with email and role claim
-    public String generateToken(String email, String role,Long userId) {
+    public String generateToken(String email, String role, UUID userId) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
-                .claim("userId", userId)
+                .claim("userId", userId.toString())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -69,8 +70,9 @@ public class JwtUtil {
         return claimsResolver.apply(claims);
     }
       //extract userId
-    public Long extractUserId(String token) {
-        return extractAllClaims(token).get("userId", Long.class);
+    public UUID extractUserId(String token) {
+        String userId= extractAllClaims(token).get("userId", String.class);
+        return UUID.fromString(userId);
     }
 
     // Extract all claims from token

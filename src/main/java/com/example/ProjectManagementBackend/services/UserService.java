@@ -19,7 +19,6 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -29,8 +28,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -44,11 +41,11 @@ public class UserService {
 
     @Autowired
     private VerificationTokenRepository tokenRepository;
+
     @Autowired
     private EmailService emailService;
 
-    @Autowired
-    private JavaMailSender mailSender;
+
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -209,6 +206,7 @@ public class UserService {
         passwordResetTokenRepo.delete(resetToken);
         return ResponseEntity.ok("Password updated successfully ");
     }
+
     //get user profile
     public ResponseEntity<?> getUserProfile() {
 
@@ -239,4 +237,24 @@ public User getCurrentUser()
         throw new UserNotFoundException("user not found");
     }
     }
+
+    public ResponseEntity<?> updateUserProfile(UserProfileDto dto) {
+        User currentUser = getCurrentUser();
+
+        if (dto.getFirstName() != null) {
+            currentUser.setFirstName(dto.getFirstName());
+        }
+        if (dto.getLastName() != null) {
+            currentUser.setLastName(dto.getLastName());
+        }
+        if (dto.getEmail() != null) {
+            currentUser.setEmail(dto.getEmail());
+        }
+
+        userRepo.save(currentUser);
+
+        return ResponseEntity.ok(new UserProfileDto(currentUser));
+    }
+
+
 }

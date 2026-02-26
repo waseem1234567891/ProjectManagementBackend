@@ -1,9 +1,11 @@
 package com.example.ProjectManagementBackend.controllers;
 
+import com.example.ProjectManagementBackend.dto.workspace.AcceptWorkspaceInvitationDto;
 import com.example.ProjectManagementBackend.respositories.VerificationTokenRepository;
 import com.example.ProjectManagementBackend.services.UserService;
 import com.example.ProjectManagementBackend.dto.auth.LoginRequestDto;
 import com.example.ProjectManagementBackend.dto.auth.RegisterationDto;
+import com.example.ProjectManagementBackend.services.WorkspaceService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,8 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private WorkspaceService workspaceService;
 
 
     @PostMapping("/register")
@@ -60,8 +64,14 @@ public class AuthController {
     {
         return userService.resetPassword(token,newPassword);
     }
-
-
+//accept invitation
+    @GetMapping("/accept")
+    public ResponseEntity<String> acceptInvitation(
+            @RequestParam String token
+    ) {
+        workspaceService.acceptInvitation(token);
+        return ResponseEntity.ok("Invitation accepted successfully");
+    }
 
 
 }

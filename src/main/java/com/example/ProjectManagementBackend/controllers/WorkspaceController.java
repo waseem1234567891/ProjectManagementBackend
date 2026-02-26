@@ -1,11 +1,7 @@
 package com.example.ProjectManagementBackend.controllers;
 
-import com.example.ProjectManagementBackend.dto.workspace.AcceptWorkspaceInvitationDto;
-import com.example.ProjectManagementBackend.dto.workspace.CreateWorkspaceRequestDto;
-import com.example.ProjectManagementBackend.dto.user.UserProfileDto;
-import com.example.ProjectManagementBackend.dto.workspace.UpdateWorkspaceRequestDto;
-import com.example.ProjectManagementBackend.dto.workspace.WorkspaceResponseDto;
-import com.example.ProjectManagementBackend.services.UserService;
+
+import com.example.ProjectManagementBackend.dto.workspace.*;
 import com.example.ProjectManagementBackend.services.WorkspaceService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,37 +12,49 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/user")
-public class UserController {
-
-    @Autowired
-    private UserService userService;
+@RequestMapping("/workspace")
+public class WorkspaceController {
 
     @Autowired
     private WorkspaceService workspaceService;
 
-    @GetMapping("/profile")
-    public ResponseEntity<?> getUserProfile()
+
+    //invite a user for join a work space
+    @PostMapping("/{workspaceId}/invitaion")
+    public ResponseEntity<?> inviteAMember(@PathVariable UUID workspaceId, @Valid @RequestBody WorkspaceInvitationRequestDto dto)
     {
-      return   userService.getUserProfile();
+        workspaceService.inviteAUser(workspaceId,dto);
+        return ResponseEntity.ok("invitation email has been sent to "+dto.getEmail()
+        );
     }
-    @PatchMapping("/update-profile")
-    public ResponseEntity<?> updateUserProfile(@RequestBody UserProfileDto userProfileDto)
+    //get a workspace
+    @GetMapping("/{workspaceId}")
+    public ResponseEntity<?> getworkspace(@PathVariable UUID workspaceId)
     {
-        return userService.updateUserProfile(userProfileDto);
+        WorkspaceResponseDto workspaceById = workspaceService.getWorkspaceById(workspaceId);
+        return ResponseEntity.ok(workspaceById);
     }
-// create new workspace
+
+    @GetMapping("my")
+    public ResponseEntity<?> getAllWorkspaces()
+    {
+        List<WorkspaceResponseDto> myWorkspaces = workspaceService.getMyWorkspaces();
+        return ResponseEntity.ok(myWorkspaces);
+    }
+
+    // create new workspace
     @PostMapping("/create-workspace")
     public ResponseEntity<?> createWorkspace(@Valid @RequestBody CreateWorkspaceRequestDto dto)
     {
         return workspaceService.createWorkspace(dto);
     }
+
     //update workspace
     @PatchMapping("/update-workspace/{workspaceId}")
     public ResponseEntity<?> updateWorkspace(@PathVariable UUID workspaceId, @Valid @RequestBody UpdateWorkspaceRequestDto dto)
     {
         WorkspaceResponseDto workspaceResponseDto = workspaceService.updateWorkspace(workspaceId, dto);
-    return  ResponseEntity.ok(workspaceResponseDto);
+        return  ResponseEntity.ok(workspaceResponseDto);
     }
 
     //get workspace by workspace id
@@ -73,14 +81,6 @@ public class UserController {
     {
         List<WorkspaceResponseDto> myWorkspaces = workspaceService.getMyWorkspaces();
         return ResponseEntity.ok(myWorkspaces);
-    }
-
-    @PostMapping("/accept")
-    public ResponseEntity<String> acceptInvitation(
-            @RequestBody AcceptWorkspaceInvitationDto dto
-    ) {
-        workspaceService.acceptInvitation(dto.getToken());
-        return ResponseEntity.ok("Invitation accepted successfully");
     }
 
 }
