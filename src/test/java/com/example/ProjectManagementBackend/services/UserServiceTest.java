@@ -34,6 +34,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -130,12 +131,13 @@ public class UserServiceTest {
         when(authentication.getPrincipal()).thenReturn(customDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
+        UUID userId = UUID.randomUUID();
 
         when(customDetails.getUsername()).thenReturn("test@gmail.com");
         when(customDetails.getRole()).thenReturn("USER");
-        when(customDetails.getId()).thenReturn(1L);
+        when(customDetails.getId()).thenReturn(userId);
 
-        when(jwtUtil.generateToken("test@gmail.com", "USER", 1L))
+        when(jwtUtil.generateToken("test@gmail.com", "USER", userId))
                 .thenReturn("mocked_jwt");
 
         ResponseEntity<?> response = userService.login(dto);
@@ -143,7 +145,7 @@ public class UserServiceTest {
 
         assertNotNull(loginResponse);
         assertEquals("mocked_jwt", loginResponse.getToken());
-        assertEquals(1L, loginResponse.getUserId());
+        assertEquals(userId, loginResponse.getUserId());
     }
 
     @Test

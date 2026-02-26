@@ -6,10 +6,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 public class CustomUserDetail implements UserDetails {
 
-    private Long id;
+    private UUID id;
     private String email;
     private String password;
     private  String role;
@@ -50,7 +51,7 @@ public class CustomUserDetail implements UserDetails {
         return role;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 

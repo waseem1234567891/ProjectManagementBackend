@@ -28,7 +28,33 @@ public class EmailService {
 
             String content = "<p>Dear User,</p>"
                     + "<p>Thank you for registering. Please click the link below to verify your email address:</p>"
-                    + "<p><a href=\"" + verificationUrl + "\">VERIFY EMAIL</a></p>"
+                    + "<p><a href=\"" + verificationUrl + "\">Accept Inviation</a></p>"
+                    + "<br><p>Regards,<br>MyApp Team</p>";
+
+            helper.setText(content, true);
+            mailSender.send(message);
+
+            System.out.println("✅ Verification email sent to " + recipientEmail);
+
+        } catch (MessagingException | MailSendException e) {
+            System.err.println("❌ Failed to send email to " + recipientEmail + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // Send invitation token by Email verification
+    public void sendInvitationTokenEmail(String recipientEmail, String acceptInvitationTokenUrl) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setTo(recipientEmail);
+            helper.setSubject("Invitation to Join Workspace");
+            helper.setFrom("no-reply@myapp.com");
+
+            String content = "<p>Dear User,</p>"
+                    + "<p>Thank you for registering. Please click the link below to verify your email address:</p>"
+                    + "<p><a href=\"" + acceptInvitationTokenUrl + "\">Accept Invitation</a></p>"
                     + "<br><p>Regards,<br>MyApp Team</p>";
 
             helper.setText(content, true);
