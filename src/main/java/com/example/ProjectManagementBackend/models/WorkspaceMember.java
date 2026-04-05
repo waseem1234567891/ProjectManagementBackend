@@ -78,4 +78,5 @@ public class WorkspaceMember {
     public void setJoinedAt(Instant joinedAt) {
         this.joinedAt = joinedAt;
     }
+
 }

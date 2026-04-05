@@ -1,7 +1,5 @@
 package com.example.ProjectManagementBackend.dto.workspace;
 
-
-
 import com.example.ProjectManagementBackend.models.enums.WorkspaceType;
 
 import java.time.Instant;
@@ -17,6 +15,9 @@ public class WorkspaceResponseDto {
     private Instant updatedAt;
     private WorkspaceType type;
 
+    // ⭐ Workspace short key (PM, CRM, DEV)
+    private String key;
+
     public WorkspaceResponseDto() {}
 
     public WorkspaceResponseDto(
@@ -26,7 +27,8 @@ public class WorkspaceResponseDto {
             UUID createdBy,
             Instant createdAt,
             Instant updatedAt,
-            WorkspaceType type
+            WorkspaceType type,
+            String key
     ) {
         this.id = id;
         this.name = name;
@@ -34,7 +36,8 @@ public class WorkspaceResponseDto {
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.type=type;
+        this.type = type;
+        this.key = key;
     }
 
     public UUID getId() {
@@ -92,5 +95,13 @@ public class WorkspaceResponseDto {
     public void setType(WorkspaceType type) {
         this.type = type;
     }
-}
 
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+}

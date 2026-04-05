@@ -8,6 +8,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -18,6 +19,12 @@ public class Workspace {
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(length = 36, nullable = false, updatable = false)
     private UUID id;
+
+    @Column(name = "workspace_key", nullable = false, unique = true)
+    private String key; // e.g. PM, CRM, DEV
+
+    @Column(nullable = false)
+    private Integer issueCounter = 0;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -37,6 +44,15 @@ public class Workspace {
 
     @Enumerated(EnumType.STRING)
     private WorkspaceType type;
+
+    @OneToMany(mappedBy = "workspace", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkspaceMember> workspaceMembers;
+
+    @OneToMany(mappedBy = "workspace")
+    private List<Sprint> sprints;
+
+    @OneToMany(mappedBy = "workspace")
+    private List<Issue> issues;
 
     public UUID getId() {
         return id;
@@ -92,5 +108,45 @@ public class Workspace {
 
     public void setType(WorkspaceType type) {
         this.type = type;
+    }
+
+    public String getWorkspaceKey() {
+        return key;
+    }
+
+    public void setWorkspaceKey(String key) {
+        this.key = key;
+    }
+
+    public Integer getIssueCounter() {
+        return issueCounter;
+    }
+
+    public void setIssueCounter(Integer issueCounter) {
+        this.issueCounter = issueCounter;
+    }
+
+    public List<WorkspaceMember> getWorkspaceMembers() {
+        return workspaceMembers;
+    }
+
+    public void setWorkspaceMembers(List<WorkspaceMember> workspaceMembers) {
+        this.workspaceMembers = workspaceMembers;
+    }
+
+    public List<Sprint> getSprints() {
+        return sprints;
+    }
+
+    public void setSprints(List<Sprint> sprints) {
+        this.sprints = sprints;
+    }
+
+    public List<Issue> getIssues() {
+        return issues;
+    }
+
+    public void setIssues(List<Issue> issues) {
+        this.issues = issues;
     }
 }

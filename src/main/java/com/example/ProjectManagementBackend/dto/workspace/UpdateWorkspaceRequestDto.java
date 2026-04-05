@@ -1,7 +1,6 @@
 package com.example.ProjectManagementBackend.dto.workspace;
 
-
-
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class UpdateWorkspaceRequestDto {
@@ -11,6 +10,10 @@ public class UpdateWorkspaceRequestDto {
 
     @Size(max = 500)
     private String description;
+
+    // workspace key like PROJ, CRM
+    @Pattern(regexp = "^[A-Z]{2,10}$", message = "Workspace key must be 2-10 uppercase letters")
+    private String key;
 
     public String getName() {
         return name;
@@ -27,5 +30,12 @@ public class UpdateWorkspaceRequestDto {
     public void setDescription(String description) {
         this.description = description;
     }
-}
 
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+}
