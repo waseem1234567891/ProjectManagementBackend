@@ -1,9 +1,6 @@
 package com.example.ProjectManagementBackend.services;
 
-import com.example.ProjectManagementBackend.dto.workspace.CreateWorkspaceRequestDto;
-import com.example.ProjectManagementBackend.dto.workspace.UpdateWorkspaceRequestDto;
-import com.example.ProjectManagementBackend.dto.workspace.WorkspaceInvitationRequestDto;
-import com.example.ProjectManagementBackend.dto.workspace.WorkspaceResponseDto;
+import com.example.ProjectManagementBackend.dto.workspace.*;
 import com.example.ProjectManagementBackend.exceptions.AccessDeniedException;
 import com.example.ProjectManagementBackend.exceptions.ResourceNotFoundException;
 import com.example.ProjectManagementBackend.exceptions.WorkspaceNameAlreadyExistException;
@@ -11,6 +8,7 @@ import com.example.ProjectManagementBackend.models.User;
 import com.example.ProjectManagementBackend.models.Workspace;
 import com.example.ProjectManagementBackend.models.WorkspaceInvitation;
 import com.example.ProjectManagementBackend.models.WorkspaceMember;
+import com.example.ProjectManagementBackend.models.enums.WorkspaceRole;
 import com.example.ProjectManagementBackend.respositories.UserRepo;
 import com.example.ProjectManagementBackend.respositories.WorkspaceInvitaionRepo;
 import com.example.ProjectManagementBackend.respositories.WorkspaceMemberRepository;
@@ -38,6 +36,8 @@ public class WorkspaceService {
 
     @Autowired
     private WorkspaceInvitaionRepo workspaceInvitaionRepo;
+    @Autowired
+    private WorkspaceMemberRepository workspaceMemberRepository;
 
     @Autowired EmailService emailService;
 
@@ -59,8 +59,17 @@ public class WorkspaceService {
         workspace.setName(dto.getName());
         workspace.setDescription(dto.getDescription());
         workspace.setCreatedBy(user.getId());
+        System.out.println(user.getId());
         workspace.setType(dto.getType());
+        workspace.setWorkspaceKey(dto.getWorkspaceKey());
         Workspace saved = workspaceRepo.save(workspace);
+        //create a workspace member
+        WorkspaceMember workspaceMember=new WorkspaceMember();
+        workspaceMember.setWorkspace(saved);
+        workspaceMember.setUser(user);
+        workspaceMember.setRole(WorkspaceRole.OWNER);
+        workspaceMemberRepository.save(workspaceMember);
+
         return ResponseEntity.status(201).body(mapToDto(saved));
     }
     //update workspace
@@ -101,7 +110,7 @@ public class WorkspaceService {
 
         UUID userId = userService.getCurrentUser().getId();
 
-        return workspaceRepo.findByCreatedBy(userId)
+        return workspaceRepo.findWorkspacesByUserId(userId)
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -129,7 +138,8 @@ public class WorkspaceService {
                 workspace.getCreatedBy(),
                 workspace.getCreatedAt(),
                 workspace.getUpdatedAt(),
-                workspace.getType()
+                workspace.getType(),
+                workspace.getWorkspaceKey()
         );
     }
 // invite a user
@@ -147,9 +157,25 @@ public class WorkspaceService {
         //only admin can send invitation
         UUID currentUserId = userService.getCurrentUser().getId();
 
-        if (!workspace.getCreatedBy().equals(currentUserId)) {
-            throw new AccessDeniedException("You are not allowed to invite users to this workspace");
+
+        boolean isAdmin = workspaceMemberRepository
+                .existsByWorkspaceAndUserIdAndRole(workspace, currentUserId, WorkspaceRole.ADMIN);
+
+        if (!isAdmin) {
+            throw new AccessDeniedException("Only admins can invite users");
         }
+        Optional<User> invitedUser = userRepo.findByEmail(dto.getEmail());
+
+        if (invitedUser.isEmpty()) {
+            throw new ResourceNotFoundException("User with this email does not exist in the system");
+        }
+        boolean alreadyMember = workspaceMemberRepository
+                .existsByWorkspaceAndUser(workspace, invitedUser);
+
+        if (alreadyMember) {
+            throw new IllegalStateException("User is already a member of this workspace");
+        }
+
 
         //  Check existing invitation
         Optional<WorkspaceInvitation> exisyingWorkspace = workspaceInvitaionRepo.findByWorkspaceAndEmail(workspace, dto.getEmail());
@@ -223,4 +249,17 @@ public class WorkspaceService {
     }
 
 
+    public List<WorkspaceMemberDto> getMembersOfWorkspace(UUID workspaceId) {
+        Optional<Workspace> byId = workspaceRepo.findById(workspaceId);
+        Workspace workspace=byId.get();
+        return workspace.getWorkspaceMembers()
+                .stream()
+                .map(member -> new WorkspaceMemberDto(
+                        member.getUser().getId(),
+                        member.getUser().getFirstName(),
+                        member.getUser().getEmail(),
+                        member.getRole().name()
+                ))
+                .toList();
+    }
 }

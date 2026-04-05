@@ -2,6 +2,7 @@ package com.example.ProjectManagementBackend.controllers;
 
 
 import com.example.ProjectManagementBackend.dto.workspace.*;
+import com.example.ProjectManagementBackend.respositories.UserRepo;
 import com.example.ProjectManagementBackend.services.WorkspaceService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,9 @@ public class WorkspaceController {
 
     @Autowired
     private WorkspaceService workspaceService;
+
+    @Autowired
+    private UserRepo userRepo;
 
 
     //invite a user for join a work space
@@ -82,5 +86,12 @@ public class WorkspaceController {
         List<WorkspaceResponseDto> myWorkspaces = workspaceService.getMyWorkspaces();
         return ResponseEntity.ok(myWorkspaces);
     }
+
+    @GetMapping("/{workspaceId}/members")
+    public List<WorkspaceMemberDto> getMembersOfWorkspace(@PathVariable UUID workspaceId)
+    {
+       return workspaceService.getMembersOfWorkspace(workspaceId);
+    }
+
 
 }
