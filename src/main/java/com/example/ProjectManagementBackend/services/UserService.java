@@ -2,13 +2,12 @@ package com.example.ProjectManagementBackend.services;
 
 
 
+import com.example.ProjectManagementBackend.dto.auth.AuthResponse;
 import com.example.ProjectManagementBackend.dto.user.UserProfileDto;
 import com.example.ProjectManagementBackend.exceptions.*;
-import com.example.ProjectManagementBackend.models.CustomUserDetail;
-import com.example.ProjectManagementBackend.models.PasswordResetToken;
-import com.example.ProjectManagementBackend.models.User;
-import com.example.ProjectManagementBackend.models.VerificationToken;
+import com.example.ProjectManagementBackend.models.*;
 import com.example.ProjectManagementBackend.respositories.PasswordResetTokenRepo;
+import com.example.ProjectManagementBackend.respositories.RefreshTokenRepository;
 import com.example.ProjectManagementBackend.respositories.UserRepo;
 import com.example.ProjectManagementBackend.respositories.VerificationTokenRepository;
 import com.example.ProjectManagementBackend.util.JwtUtil;
@@ -29,7 +28,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,6 +56,12 @@ public class UserService {
 
     @Autowired
     private PasswordResetTokenRepo passwordResetTokenRepo;
+
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
 
     @Autowired
@@ -91,9 +98,13 @@ public class UserService {
  //user login
     public ResponseEntity<?> login(@Valid LoginRequestDto loginRequestDto) {
         Optional<User> byEmail = userRepo.findByEmail(loginRequestDto.getEmail());
+        User user;
         if (byEmail.isEmpty())
         {
             throw new UserNotFoundException("User Not Found With Email "+loginRequestDto.getEmail());
+        }
+        else {
+            user=byEmail.get();
         }
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -110,10 +121,11 @@ public class UserService {
                     userDetails.getId()
             );
 
-
+            // 3. Generate REFRESH TOKEN
+            RefreshToken refreshToken =refreshTokenService.createRefreshToken(user);
 
             return ResponseEntity.ok(
-                    new LoginResponse(token, userDetails.getId(),
+                    new LoginResponse(token,refreshToken.getToken(), userDetails.getId(),
                             userDetails.getRole())
             );
 
@@ -254,6 +266,44 @@ public User getCurrentUser()
         userRepo.save(currentUser);
 
         return ResponseEntity.ok(new UserProfileDto(currentUser));
+    }
+
+
+    public AuthResponse refreshToken(String refreshTokenValue) {
+
+        RefreshToken token = refreshTokenRepository.findByToken(refreshTokenValue)
+                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+
+        if (token.isExpired() || token.isRevoked()) {
+            throw new RuntimeException("Refresh token expired");
+        }
+
+        User user = token.getUser();
+
+        token.setRevoked(true);
+        refreshTokenRepository.save(token);
+
+        String newAccessToken = jwtUtil.generateToken(
+                user.getEmail(),
+                user.getRole(),
+                user.getId()
+        );
+
+        // 🔥 create new refresh token
+        //RefreshToken newRefreshToken = new RefreshToken();
+        //newRefreshToken.setToken(UUID.randomUUID().toString());
+       // newRefreshToken.setUser(user);
+       // newRefreshToken.setExpiryDate(Instant.now().plus(7, ChronoUnit.DAYS));
+       // newRefreshToken.setRevoked(false);
+
+        //refreshTokenRepository.save(newRefreshToken);
+        System.out.println("refreshed token............."+user.getFirstName());
+        return new AuthResponse(
+                newAccessToken,
+                refreshTokenValue,
+                user.getId(),
+                user.getRole()
+        );
     }
 
 

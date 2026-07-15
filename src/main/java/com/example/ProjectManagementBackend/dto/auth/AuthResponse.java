@@ -2,23 +2,25 @@ package com.example.ProjectManagementBackend.dto.auth;
 
 import java.util.UUID;
 
-public class LoginResponse {
+public class AuthResponse {
+
     private String token;
     private String refreshToken;
+
     private UUID userId;
     private String role;
 
+    public AuthResponse() {}
 
-    public LoginResponse(String token,String refreshToken, UUID userId, String role) {
-        this.token = token;
-        this.refreshToken=refreshToken;
+    public AuthResponse(String accessToken, String refreshToken, UUID userId, String role) {
+        this.token = accessToken;
+        this.refreshToken = refreshToken;
         this.userId = userId;
         this.role = role;
-
     }
 
-    public LoginResponse() {
-    }
+    // getters & setters
+
 
     public String getToken() {
         return token;
@@ -26,6 +28,14 @@ public class LoginResponse {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public UUID getUserId() {
@@ -42,13 +52,5 @@ public class LoginResponse {
 
     public void setRole(String role) {
         this.role = role;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
     }
 }

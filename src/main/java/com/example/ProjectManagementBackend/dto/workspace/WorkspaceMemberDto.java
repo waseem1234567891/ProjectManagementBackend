@@ -3,7 +3,7 @@ package com.example.ProjectManagementBackend.dto.workspace;
 import java.util.UUID;
 
 public class WorkspaceMemberDto {
-
+    private UUID memberId;
     private UUID userId;
     private String name;
     private String email;
@@ -11,7 +11,8 @@ public class WorkspaceMemberDto {
 
     public WorkspaceMemberDto() {}
 
-    public WorkspaceMemberDto(UUID userId, String name, String email, String role) {
+    public WorkspaceMemberDto(UUID memberId,UUID userId, String name, String email, String role) {
+        this.memberId=memberId;
         this.userId = userId;
         this.name = name;
         this.email = email;
@@ -50,5 +51,13 @@ public class WorkspaceMemberDto {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public UUID getMemberId() {
+        return memberId;
+    }
+
+    public void setMemberId(UUID memberId) {
+        this.memberId = memberId;
     }
 }

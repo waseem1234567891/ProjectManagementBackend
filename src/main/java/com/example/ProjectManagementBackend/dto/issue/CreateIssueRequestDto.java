@@ -1,15 +1,18 @@
 package com.example.ProjectManagementBackend.dto.issue;
 
+import com.example.ProjectManagementBackend.models.Issue;
 import com.example.ProjectManagementBackend.models.enums.IssuePriority;
 import com.example.ProjectManagementBackend.models.enums.IssueType;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public class CreateIssueRequestDto {
 
     @NotBlank(message = "Issue title is required")
     private String title;
+    private UUID parentIssueId;
 
     private String description;
     private IssueType type = IssueType.TASK;
@@ -51,5 +54,13 @@ public class CreateIssueRequestDto {
 
     public void setEpicId(UUID epicId) {
         this.epicId = epicId;
+    }
+
+    public UUID getParentIssueId() {
+        return parentIssueId;
+    }
+
+    public void setParentIssueId(UUID parentIssueId) {
+        this.parentIssueId = parentIssueId;
     }
 }

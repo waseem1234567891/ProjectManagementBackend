@@ -1,5 +1,7 @@
 package com.example.ProjectManagementBackend.controllers;
 
+import com.example.ProjectManagementBackend.dto.auth.AuthResponse;
+import com.example.ProjectManagementBackend.dto.auth.RefreshRequest;
 import com.example.ProjectManagementBackend.dto.workspace.AcceptWorkspaceInvitationDto;
 import com.example.ProjectManagementBackend.respositories.VerificationTokenRepository;
 import com.example.ProjectManagementBackend.services.UserService;
@@ -71,6 +73,12 @@ public class AuthController {
     ) {
         workspaceService.acceptInvitation(token);
         return ResponseEntity.ok("Invitation accepted successfully");
+    }
+
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@RequestBody RefreshRequest request) {
+        return userService.refreshToken(request.getRefreshToken());
     }
 
 
