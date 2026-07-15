@@ -1,42 +1,86 @@
 package com.example.ProjectManagementBackend.dto.issue;
 
-import com.example.ProjectManagementBackend.dto.comments.CommentDTO;
-import com.example.ProjectManagementBackend.dto.epic.EpicResponseDto;
-import com.example.ProjectManagementBackend.dto.user.UserDto;
-import com.example.ProjectManagementBackend.models.User;
 import com.example.ProjectManagementBackend.models.enums.IssuePriority;
 import com.example.ProjectManagementBackend.models.enums.IssueStatus;
 import com.example.ProjectManagementBackend.models.enums.IssueType;
+
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
-public class IssueResponseDto {
+public class IssueListDto {
+
     private UUID id;
     private String issueKey;
     private String title;
     private String description;
+
     private IssueType type;
     private IssueStatus status;
     private IssuePriority priority;
+
     private UUID workspaceId;
     private UUID sprintId;
+
+    // flat user fields (from join)
     private UUID assigneeId;
-    private List<CommentDTO> comments;
-    private UserDto reporter;
-    private UserDto Assignee;
+    private String assigneeName;
+    private String assigneeEmail;
+
+    private UUID reporterId;
     private LocalDate dueDate;
     private Integer storyPoints;
+
     private Instant createdAt;
     private Instant updatedAt;
-    private EpicResponseDto epic;
-    private IssueSummaryDto parentIssue;
-    private List<IssueSummaryDto> subtasks;
-    private UUID parentId;
+
+    public IssueListDto() {}
+
+    public IssueListDto(
+            UUID id,
+            String issueKey,
+            String title,
+            String description,
+            IssueType type,
+            IssueStatus status,
+            IssuePriority priority,
+            UUID workspaceId,
+            UUID sprintId,
+            UUID assigneeId,
+            String assigneeName,
+            String assigneeEmail,
+            UUID reporterId,
+            LocalDate dueDate,
+            Integer storyPoints,
+            Instant createdAt,
+            Instant updatedAt
+    ) {
+        this.id = id;
+        this.issueKey = issueKey;
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.status = status;
+        this.priority = priority;
+        this.workspaceId = workspaceId;
+        this.sprintId = sprintId;
+        this.assigneeId = assigneeId;
+        this.assigneeName = assigneeName;
+        this.assigneeEmail = assigneeEmail;
+        this.reporterId = reporterId;
+        this.dueDate = dueDate;
+        this.storyPoints = storyPoints;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    // getters + setters
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
+    public String getIssueKey() { return issueKey; }
+    public void setIssueKey(String issueKey) { this.issueKey = issueKey; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -62,7 +106,14 @@ public class IssueResponseDto {
     public UUID getAssigneeId() { return assigneeId; }
     public void setAssigneeId(UUID assigneeId) { this.assigneeId = assigneeId; }
 
+    public String getAssigneeName() { return assigneeName; }
+    public void setAssigneeName(String assigneeName) { this.assigneeName = assigneeName; }
 
+    public String getAssigneeEmail() { return assigneeEmail; }
+    public void setAssigneeEmail(String assigneeEmail) { this.assigneeEmail = assigneeEmail; }
+
+    public UUID getReporterId() { return reporterId; }
+    public void setReporterId(UUID reporterId) { this.reporterId = reporterId; }
 
     public LocalDate getDueDate() { return dueDate; }
     public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
@@ -76,67 +127,4 @@ public class IssueResponseDto {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
-    public String getIssueKey() {
-        return issueKey;
-    }
-
-    public void setIssueKey(String issueKey) {
-        this.issueKey = issueKey;
-    }
-
-    public UserDto getAssignee() {
-        return Assignee;
-    }
-
-    public void setAssignee(UserDto assignee) {
-        Assignee = assignee;
-    }
-
-    public List<CommentDTO> getComments() {
-        return comments;
-    }
-
-    public void setComments(List<CommentDTO> comments) {
-        this.comments = comments;
-    }
-
-    public EpicResponseDto getEpic() {
-        return epic;
-    }
-
-    public void setEpic(EpicResponseDto epic) {
-        this.epic = epic;
-    }
-
-    public IssueSummaryDto getParentIssue() {
-        return parentIssue;
-    }
-
-    public void setParentIssue(IssueSummaryDto parentIssue) {
-        this.parentIssue = parentIssue;
-    }
-
-    public List<IssueSummaryDto> getSubtasks() {
-        return subtasks;
-    }
-
-    public void setSubtasks(List<IssueSummaryDto> subtasks) {
-        this.subtasks = subtasks;
-    }
-
-    public UUID getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(UUID parentId) {
-        this.parentId = parentId;
-    }
-
-    public UserDto getReporter() {
-        return reporter;
-    }
-
-    public void setReporter(UserDto reporter) {
-        this.reporter = reporter;
-    }
 }

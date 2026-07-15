@@ -2,8 +2,7 @@ package com.example.ProjectManagementBackend.services;
 
 import com.example.ProjectManagementBackend.dto.comments.CommentDTO;
 import com.example.ProjectManagementBackend.dto.epic.EpicResponseDto;
-import com.example.ProjectManagementBackend.dto.issue.CreateIssueRequestDto;
-import com.example.ProjectManagementBackend.dto.issue.IssueResponseDto;
+import com.example.ProjectManagementBackend.dto.issue.*;
 import com.example.ProjectManagementBackend.dto.user.UserDto;
 import com.example.ProjectManagementBackend.exceptions.ResourceNotFoundException;
 import com.example.ProjectManagementBackend.models.*;
@@ -12,11 +11,15 @@ import com.example.ProjectManagementBackend.models.enums.IssueStatus;
 import com.example.ProjectManagementBackend.models.enums.IssueType;
 import com.example.ProjectManagementBackend.respositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +40,8 @@ public class IssueService {
     private ActivityService activityService;
     @Autowired
     private EpicRepository epicRepository;
+    @Autowired
+    private NotificationService notificationService;
 
 
     private UUID getCurrentUserId() {
@@ -46,14 +51,14 @@ public class IssueService {
     }
 
     public IssueResponseDto createIssue(UUID workspaceId, CreateIssueRequestDto dto) {
-        Workspace workspace = workspaceRepo.findById(workspaceId).orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
+        Workspace workspace = workspaceRepo.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
-        // increment issue counter
+        // Increment issue counter
         int nextNumber = workspace.getIssueCounter() + 1;
         workspace.setIssueCounter(nextNumber);
-        Workspace saveWorkspace = workspaceRepo.save(workspace);
+        workspaceRepo.save(workspace);
 
-        // generate key like DEV-1
         String issueKey = workspace.getWorkspaceKey() + "-" + nextNumber;
 
         Issue issue = new Issue();
@@ -62,32 +67,63 @@ public class IssueService {
         issue.setDescription(dto.getDescription());
         issue.setType(dto.getType());
         issue.setPriority(dto.getPriority());
-        issue.setWorkspace(saveWorkspace);
+        issue.setWorkspace(workspace);
         issue.setAssigneeId(dto.getAssigneeId());
         issue.setReporterId(getCurrentUserId());
         issue.setDueDate(dto.getDueDate());
         issue.setStoryPoints(dto.getStoryPoints());
         issue.setStatus(IssueStatus.TODO);
-        Optional<Epic> byId = epicRepository.findById(dto.getEpicId());
-        if (byId.isPresent()) {
-            issue.setEpic(byId.get());
+
+        // Epic
+        if (dto.getEpicId() != null) {
+            Epic epic = epicRepository.findById(dto.getEpicId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Epic not found"));
+
+            issue.setEpic(epic);
         }
 
-        // ✅ LOG ACTIVITY
+        // Subtask Validation / Parent Link
+        if (dto.getType() == IssueType.SUBTASK) {
+
+            if (dto.getParentIssueId() == null) {
+                throw new IllegalArgumentException("Subtask must have parent issue");
+            }
+
+            Issue parent = issueRepo.findById(dto.getParentIssueId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent issue not found"));
+
+            if (parent.getType() == IssueType.SUBTASK) {
+                throw new IllegalArgumentException("Subtasks cannot have subtasks");
+            }
+
+            issue.setParentIssue(parent);
+
+            // Inherit from parent
+            issue.setEpic(parent.getEpic());
+            issue.setSprint(parent.getSprint());
+        }
+
+        if (dto.getType() != IssueType.SUBTASK && dto.getParentIssueId() != null) {
+            throw new IllegalArgumentException("Only subtasks can have parent issues");
+        }
+
+        Issue savedIssue = issueRepo.save(issue);
+
         activityService.logActivity(
                 "ISSUE_CREATED",
-                "Issue " + issue.getTitle() + " created",
-                issue.getWorkspace().getId(),
-                issue.getId()
+                "Issue " + savedIssue.getTitle() + " created",
+                savedIssue.getWorkspace().getId(),
+                savedIssue.getId()
         );
 
-        return toDto(issueRepo.save(issue));
+        return toDto(savedIssue);
     }
 
     // Get all backlog issues (not in any sprint)
     public List<IssueResponseDto> getBacklogIssues(UUID workspaceId) {
         return issueRepo.findByWorkspaceIdAndSprintIdIsNull(workspaceId)
                 .stream().map(this::toDto).collect(Collectors.toList());
+
     }
 
     // Get all issues in a specific sprint
@@ -110,18 +146,44 @@ public class IssueService {
         return toDto(issueRepo.save(issue));
     }
 
-    // Update issue status (e.g. drag & drop on Kanban)
     public IssueResponseDto updateIssueStatus(UUID issueId, IssueStatus newStatus) {
         Issue issue = issueRepo.findById(issueId)
                 .orElseThrow(() -> new ResourceNotFoundException("Issue not found"));
+
+        // 🔒 CHECK: Prevent parent from moving to DONE if subtasks are not DONE
+        if (newStatus == IssueStatus.DONE && issue.getSubtasks() != null && !issue.getSubtasks().isEmpty()) {
+
+            boolean allSubtasksDone = issue.getSubtasks().stream()
+                    .allMatch(subtask -> subtask.getStatus() == IssueStatus.DONE);
+
+            if (!allSubtasksDone) {
+                throw new IllegalStateException("All subtasks must be DONE before completing this issue");
+            }
+        }
+
+        // ✅ Update status
         issue.setStatus(newStatus);
-        // ✅ LOG ACTIVITY HERE
+
+        // ✅ Set completed time
+        if (newStatus == IssueStatus.DONE) {
+            issue.setCompletedAt(Instant.now());
+        }
+
+        // ✅ LOG ACTIVITY
         activityService.logActivity(
                 "ISSUE_MOVED",
                 "Issue " + issue.getTitle() + " moved to " + newStatus,
                 issue.getWorkspace().getId(),
                 issue.getId()
         );
+        if(issue.getAssignee()!=null) {
+            notificationService.sendNotification(
+                    issue.getAssigneeId(),
+                    "Issue " + issue.getTitle() + " moved to " + newStatus,
+                    issue.getId()
+            );
+        }
+
         return toDto(issueRepo.save(issue));
     }
 
@@ -154,74 +216,17 @@ public class IssueService {
         else throw new ResourceNotFoundException("issue not found");
     }
 
-    private IssueResponseDto toDto(Issue issue) {
-        IssueResponseDto dto = new IssueResponseDto();
-        dto.setId(issue.getId());
-        dto.setIssueKey(issue.getIssueKey());
-        dto.setTitle(issue.getTitle());
-        dto.setDescription(issue.getDescription());
-        dto.setType(issue.getType());
-        dto.setStatus(issue.getStatus());
-        dto.setPriority(issue.getPriority());
-        dto.setWorkspaceId(issue.getWorkspace().getId());
 
-        // ✅ Null-safe for sprint
-        if (issue.getSprint() != null) {
-            dto.setSprintId(issue.getSprint().getId());
-        } else {
-            dto.setSprintId(null); // or leave it unset
-        }
-
-        // Assume issue.getAssigneeId() may be null
-        UUID assigneeId = issue.getAssigneeId();
-        User assigneeUser = null;
-        if (assigneeId != null) {
-            // Safe to query repository
-            assigneeUser = userRepo.findById(assigneeId)
-                    .orElse(null); // returns null if user not found
-        }
-        // Set assignee in DTO
-        if (assigneeUser != null) {
-            UserDto assigneeDto = new UserDto();
-            assigneeDto.setId(assigneeUser.getId());
-            assigneeDto.setName(assigneeUser.getFirstName());
-            assigneeDto.setEmail(assigneeUser.getEmail());
-            dto.setAssignee(assigneeDto);
-        } else {
-            dto.setAssignee(null); // explicitly null if no assignee
-        }
-
-        dto.setAssigneeId(assigneeId); // still include ID, may be null
-        dto.setReporterId(issue.getReporterId());
-        dto.setDueDate(issue.getDueDate());
-        if(issue.getComments()!=null)
-        {
-            List<CommentDTO> commentDTOS=issue.getComments().stream().map(c->{
-                CommentDTO cdto=new CommentDTO();
-                cdto.setId(c.getId());
-                cdto.setIssueId(issue.getId());
-                cdto.setAuthorId(c.getAuthor().getId());
-                cdto.setAuthorName(c.getAuthor().getFirstName() + " " + c.getAuthor().getLastName());
-                cdto.setContent(c.getContent());
-                cdto.setCreatedAt(c.getCreatedAt());
-             return cdto;
-            }).toList();
-            dto.setComments(commentDTOS);
-        }
-
-        dto.setStoryPoints(issue.getStoryPoints());
-        dto.setCreatedAt(issue.getCreatedAt());
-        dto.setUpdatedAt(issue.getUpdatedAt());
-        if (issue.getEpic()!=null) {
-            dto.setEpic(new EpicResponseDto(issue.getEpic()));
-        }
-        return dto;
-    }
-
+//assigne an issue to a user
     public Issue assignIssue(UUID workspaceId, UUID issueId, UUID assigneeId) {
-        Issue byWorkspaceIdAndId = issueRepo.findByWorkspaceIdAndId(workspaceId, issueId);
-    byWorkspaceIdAndId.setAssigneeId(assigneeId);
-    return issueRepo.save(byWorkspaceIdAndId);
+        Issue issue = issueRepo.findByWorkspaceIdAndId(workspaceId, issueId);
+        issue.setAssigneeId(assigneeId);
+        notificationService.sendNotification(
+                issue.getAssigneeId(),
+                "Issue " + issue.getTitle() + " Assign to You By ",
+                issue.getId()
+        );
+        return issueRepo.save(issue);
     }
 
     public IssueResponseDto unassignIssue(UUID workspaceId, UUID issueId) {
@@ -243,7 +248,7 @@ public class IssueService {
         Issue saved = issueRepo.save(issue);
         return toDto(saved);
     }
-
+  //assigne an issue to an epic
     public Issue assignEpic(UUID issueId, UUID epicId) {
 
         Issue issue = issueRepo.findById(issueId)
@@ -284,8 +289,8 @@ public class IssueService {
     }
 
     public List<IssueResponseDto> getAllIssuesofWorkspace(UUID workspaceId) {
-        return issueRepo.findByWorkspaceId(workspaceId)
-                .stream().map(this::toDto).collect(Collectors.toList());
+        //return issueRepo.findAllIssues(workspaceId);
+           return      issueRepo.findByWorkspaceId(workspaceId).stream().filter(i->i.getType()!=IssueType.SUBTASK).map(this::toDtoCustom).collect(Collectors.toList());
     }
 
     public IssueResponseDto updateIssueType(UUID issueId, IssueType type) {
@@ -295,10 +300,11 @@ public class IssueService {
         return toDto(issueRepo.save(issue));
     }
 
-    public IssueResponseDto updateDueDate(UUID issueId, LocalDate dueDate) {
+    public IssueResponseDto updateDueDate(UUID issueId, DateDto dueDate) {
+        System.out.println("api hit");
         Issue issue = issueRepo.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
-        issue.setDueDate(dueDate);
+        issue.setDueDate(dueDate.getDueDate());
         return toDto(issueRepo.save(issue));
     }
 
@@ -307,5 +313,310 @@ public class IssueService {
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
         issue.setStoryPoints(storyPoints);
         return toDto(issueRepo.save(issue));
+    }
+    private IssueSummaryDto toSummaryDto(Issue issue) {
+        if (issue == null) return null;
+
+        IssueSummaryDto dto = new IssueSummaryDto();
+        dto.setId(issue.getId());
+        dto.setIssueKey(issue.getIssueKey());
+        dto.setTitle(issue.getTitle());
+        dto.setStatus(issue.getStatus());
+        dto.setType(issue.getType());
+
+        return dto;
+    }
+
+
+
+    public ResponseEntity<?> createSubtask(UUID workspaceId, UUID parentId, SubtaskRequestDto dto) {
+
+        // 1. Find parent issue
+        Issue parent = issueRepo.findById(parentId)
+                .orElseThrow(() -> new RuntimeException("Parent issue not found"));
+        Workspace workspace=parent.getWorkspace();
+        if (!workspace.getId().equals(workspaceId)) {
+            return ResponseEntity.badRequest()
+                    .body("Parent issue does not belong to workspace");
+        }
+
+        // 🚫 BLOCK SUBTASK → SUBTASK
+        if (parent.getType() == IssueType.SUBTASK) {
+            return ResponseEntity.badRequest()
+                    .body("Subtasks cannot have subtasks");
+        }
+        // 🚫 Validate title
+        if (dto.getTitle() == null || dto.getTitle().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("Subtask title is required");
+        }
+
+
+        // 2. Create subtask
+        // Increment issue counter
+
+        int nextNumber = workspace.getIssueCounter() + 1;
+        workspace.setIssueCounter(nextNumber);
+        workspaceRepo.save(workspace);
+
+        String issueKey = workspace.getWorkspaceKey() + "-" + nextNumber;
+
+
+
+        Issue subtask = new Issue();
+        subtask.setTitle(dto.getTitle());
+        subtask.setIssueKey(issueKey);
+        subtask.setType(IssueType.SUBTASK);
+        subtask.setStatus(IssueStatus.TODO);
+
+
+        subtask.setWorkspace(parent.getWorkspace());
+        subtask.setParentIssue(parent);
+
+        subtask.setAssigneeId(parent.getAssigneeId()); // optional default
+
+
+        subtask.setCreatedAt(Instant.now());
+        subtask.setUpdatedAt(Instant.now());
+        subtask.setEpic(parent.getEpic());
+        subtask.setSprint(parent.getSprint());
+        subtask.setReporterId(getCurrentUserId());
+
+
+        // 3. Save
+        Issue saved = issueRepo.save(subtask);
+
+        // 4. Return response
+        return ResponseEntity.ok(toDto(saved));
+
+
+
+    }
+
+
+ // Dto to send a complete issues
+    private IssueResponseDto toDto(Issue issue) {
+        IssueResponseDto dto = new IssueResponseDto();
+
+        dto.setId(issue.getId());
+        dto.setIssueKey(issue.getIssueKey());
+        dto.setTitle(issue.getTitle());
+        dto.setDescription(issue.getDescription());
+        dto.setType(issue.getType());
+        dto.setStatus(issue.getStatus());
+        dto.setPriority(issue.getPriority());
+        //dto.setParentId(issue.getParentIssue().getId());
+
+        dto.setWorkspaceId(issue.getWorkspace().getId());
+
+        dto.setSprintId(
+                issue.getSprint() != null
+                        ? issue.getSprint().getId()
+                        : null
+        );
+
+        // Assignee Mapping
+        UUID assigneeId = issue.getAssigneeId();
+        dto.setAssigneeId(assigneeId);
+
+        if (assigneeId != null) {
+            User assigneeUser = userRepo.findById(assigneeId).orElse(null);
+
+            if (assigneeUser != null) {
+                UserDto assigneeDto = new UserDto();
+                assigneeDto.setId(assigneeUser.getId());
+                assigneeDto.setName(assigneeUser.getFirstName());
+                assigneeDto.setEmail(assigneeUser.getEmail());
+
+                dto.setAssignee(assigneeDto);
+            } else {
+                dto.setAssignee(null);
+            }
+        } else {
+            dto.setAssignee(null);
+        }
+        Optional<User> reporterOpt = userRepo.findById(issue.getReporterId());
+        User reporter = reporterOpt.get();
+        UserDto reporterDto = new UserDto();
+        reporterDto.setId(reporter.getId());
+        reporterDto.setName(reporter.getFirstName());
+        reporterDto.setEmail(reporter.getEmail());
+
+        dto.setReporter(reporterDto);
+        dto.setDueDate(issue.getDueDate());
+        dto.setStoryPoints(issue.getStoryPoints());
+        dto.setCreatedAt(issue.getCreatedAt());
+        dto.setUpdatedAt(issue.getUpdatedAt());
+
+        // Comments
+        dto.setComments(
+                issue.getComments() == null
+                        ? List.of()
+                        : issue.getComments()
+                        .stream()
+                        .map(c -> {
+                            CommentDTO cdto = new CommentDTO();
+                            cdto.setId(c.getId());
+                            cdto.setIssueId(issue.getId());
+                            cdto.setAuthorId(c.getAuthor().getId());
+                            cdto.setAuthorName(
+                                    c.getAuthor().getFirstName() + " " +
+                                            c.getAuthor().getLastName()
+                            );
+                            cdto.setContent(c.getContent());
+                            cdto.setCreatedAt(c.getCreatedAt());
+                            return cdto;
+                        })
+                        .toList()
+        );
+
+        // Epic
+        dto.setEpic(
+                issue.getEpic() != null
+                        ? new EpicResponseDto(issue.getEpic())
+                        : null
+        );
+
+        // Parent Issue
+        dto.setParentIssue(
+                issue.getParentIssue() != null
+                        ? toSummaryDto(issue.getParentIssue())
+                        : null
+        );
+
+        // Subtasks
+        dto.setSubtasks(
+                issue.getSubtasks() == null
+                        ? List.of()
+                        : issue.getSubtasks()
+                        .stream()
+                        .map(this::toSummaryDto)
+                        .toList()
+        );
+
+        return dto;
+    }
+
+    private IssueResponseDto toDtoCustom(Issue issue) {
+        IssueResponseDto dto = new IssueResponseDto();
+
+        dto.setId(issue.getId());
+        dto.setIssueKey(issue.getIssueKey());
+        dto.setTitle(issue.getTitle());
+        dto.setDescription(issue.getDescription());
+        dto.setType(issue.getType());
+        dto.setStatus(issue.getStatus());
+        dto.setPriority(issue.getPriority());
+
+        dto.setWorkspaceId(issue.getWorkspace().getId());
+
+        dto.setSprintId(
+                issue.getSprint() != null
+                        ? issue.getSprint().getId()
+                        : null
+        );
+
+        // Assignee Mapping
+        UUID assigneeId = issue.getAssigneeId();
+        dto.setAssigneeId(assigneeId);
+
+        if (assigneeId != null) {
+            User assigneeUser = userRepo.findById(assigneeId).orElse(null);
+
+            if (assigneeUser != null) {
+                UserDto assigneeDto = new UserDto();
+                assigneeDto.setId(assigneeUser.getId());
+                assigneeDto.setName(assigneeUser.getFirstName());
+                assigneeDto.setEmail(assigneeUser.getEmail());
+
+                dto.setAssignee(assigneeDto);
+            } else {
+                dto.setAssignee(null);
+            }
+        } else {
+            dto.setAssignee(null);
+        }
+
+     //   dto.setReporterId(issue.getReporterId());
+        dto.setDueDate(issue.getDueDate());
+        dto.setStoryPoints(issue.getStoryPoints());
+        dto.setCreatedAt(issue.getCreatedAt());
+        //dto.setUpdatedAt(issue.getUpdatedAt());
+
+        // Comments
+//        dto.setComments(
+//                issue.getComments() == null
+//                        ? List.of()
+//                        : issue.getComments()
+//                        .stream()
+//                        .map(c -> {
+//                            CommentDTO cdto = new CommentDTO();
+//                            cdto.setId(c.getId());
+//                            cdto.setIssueId(issue.getId());
+//                            cdto.setAuthorId(c.getAuthor().getId());
+//                            cdto.setAuthorName(
+//                                    c.getAuthor().getFirstName() + " " +
+//                                            c.getAuthor().getLastName()
+//                            );
+//                            cdto.setContent(c.getContent());
+//                            cdto.setCreatedAt(c.getCreatedAt());
+//                            return cdto;
+//                        })
+//                        .toList()
+//        );
+
+        // Epic
+        dto.setEpic(
+                issue.getEpic() != null
+                        ? new EpicResponseDto(issue.getEpic())
+                        : null
+        );
+
+        // Parent Issue
+//        dto.setParentIssue(
+//                issue.getParentIssue() != null
+//                        ? toSummaryDto(issue.getParentIssue())
+//                        : null
+//        );
+
+        // Subtasks
+//        dto.setSubtasks(
+//                issue.getSubtasks() == null
+//                        ? List.of()
+//                        : issue.getSubtasks()
+//                        .stream()
+//                        .map(this::toSummaryDto)
+//                        .toList()
+//        );
+        Optional<User> reporterOpt = userRepo.findById(issue.getReporterId());
+        User reporter = reporterOpt.get();
+        UserDto reporterDto = new UserDto();
+        reporterDto.setId(reporter.getId());
+        reporterDto.setName(reporter.getFirstName());
+        reporterDto.setEmail(reporter.getEmail());
+
+        dto.setReporter(reporterDto);
+        return dto;
+    }
+
+
+// update Issue Sprint
+    public IssueResponseDto updateIssueSprint(UUID workspaceId, UUID issueId, UUID sprintId) {
+        Issue issue = issueRepo.findById(issueId)
+                .orElseThrow(() -> new RuntimeException("Issue not found"));
+        if (sprintId!=null) {
+            Sprint sprint = sprintRepo.findById(sprintId).orElseThrow(() -> new RuntimeException("Sprint not found"));
+            issue.setSprint(sprint);
+        }else {
+            issue.setSprint(null); // null = backlog
+        }
+
+        return toDto(issueRepo.save(issue));
+    }
+
+    public Page<IssueResponseDto> getAllIssuesofWorkspaceUsingPagination(UUID workspaceId, Pageable pageable) {
+        Page<Issue> issuesPage =
+                issueRepo.findByWorkspaceId(workspaceId, pageable);
+        return issuesPage.map(this::toDto);
     }
 }

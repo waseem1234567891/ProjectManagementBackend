@@ -1,18 +1,21 @@
 package com.example.ProjectManagementBackend.controllers;
 
-import com.example.ProjectManagementBackend.dto.issue.CreateIssueRequestDto;
-import com.example.ProjectManagementBackend.dto.issue.IssueResponseDto;
+import com.example.ProjectManagementBackend.dto.issue.*;
 import com.example.ProjectManagementBackend.models.enums.IssuePriority;
 import com.example.ProjectManagementBackend.models.enums.IssueStatus;
 import com.example.ProjectManagementBackend.models.enums.IssueType;
 import com.example.ProjectManagementBackend.services.IssueService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -32,13 +35,26 @@ public class IssueController {
 
     // GET /workspace/{workspaceId}/issues/backlog — get backlog issues
     @GetMapping("/backlog")
-    public ResponseEntity<List<IssueResponseDto>> getBacklog(@PathVariable UUID workspaceId) {
+    public ResponseEntity<List<?>> getBacklog(@PathVariable UUID workspaceId) {
         return ResponseEntity.ok(issueService.getBacklogIssues(workspaceId));
     }
     // GET /workspace/{workspaceId}/issues - get all issues of workspace
     @GetMapping("")
-    public ResponseEntity<List<IssueResponseDto>> getAllIssuesOfWorkspace(@PathVariable UUID workspaceId) {
+    public ResponseEntity<?> getAllIssuesOfWorkspace(@PathVariable UUID workspaceId) {
         return ResponseEntity.ok(issueService.getAllIssuesofWorkspace(workspaceId));
+    }
+    //get all issues using pagination
+    @GetMapping("/pagination")
+    public ResponseEntity<?> getAllIssuesOfWorkspaceUsingPagination(@PathVariable UUID workspaceId,
+                                                                    @RequestParam int page,
+                                                                    @RequestParam int size,
+                                                                    @RequestParam(defaultValue = "createdAt") String sortBy) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(sortBy).descending()
+        );
+        return ResponseEntity.ok(issueService.getAllIssuesofWorkspaceUsingPagination(workspaceId, pageable));
     }
 
     // GET /workspace/{workspaceId}/issues/sprint/{sprintId} — get issues for a sprint
@@ -87,12 +103,12 @@ public class IssueController {
     public ResponseEntity<IssueResponseDto> updateDueDate(
             @PathVariable UUID workspaceId,
             @PathVariable UUID issueId,
-            @RequestParam LocalDate dueDate) {
+            @RequestBody DateDto dueDate) {
         return ResponseEntity.ok(issueService.updateDueDate(issueId, dueDate));
     }
 
     // PATCH /workspace/{workspaceId}/issues/{issueId}/storyPoints
-    @PatchMapping("/{issueId}/storyPoints")
+    @PatchMapping("/{issueId}/story-points")
     public ResponseEntity<IssueResponseDto> updateStoryPoints(
             @PathVariable UUID workspaceId,
             @PathVariable UUID issueId,
@@ -158,5 +174,23 @@ public class IssueController {
 
         IssueResponseDto response = issueService.unassignIssue(workspaceId, issueId);
         return ResponseEntity.ok(response);
+    }
+    //create a subtask
+    @PostMapping("/{parentId}/subtasks")
+     public ResponseEntity<?> createSubtask(@PathVariable UUID workspaceId, @PathVariable UUID parentId, @RequestBody SubtaskRequestDto dto)
+    {
+     return issueService.createSubtask(workspaceId,parentId,dto);
+    }
+    @PatchMapping("/{issueId}/sprint")
+    public ResponseEntity<?> updateIssueSprint(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID issueId,
+            @RequestBody(required = false) Map<String, UUID> body
+    ) {
+        UUID sprintId = body != null ? body.get("sprintId") : null;
+
+        return ResponseEntity.ok(
+                issueService.updateIssueSprint(workspaceId, issueId, sprintId)
+        );
     }
 }

@@ -62,6 +62,34 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse,HttpStatus.NOT_FOUND);
     }
 
+    //workspace not found exception handler
+    @ExceptionHandler(WorkspaceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleWorkspaceNotFoundException(WorkspaceNotFoundException ex,WebRequest request)
+    {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(errorResponse,HttpStatus.NOT_FOUND);
+    }
+
+    //workspace member not found exception handler
+    @ExceptionHandler(WorkspaceMemberNotFound.class)
+    public ResponseEntity<ErrorResponse> handleWorkspaceMemberNotFoundException(WorkspaceMemberNotFound ex,WebRequest request)
+    {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(errorResponse,HttpStatus.NOT_FOUND);
+    }
+
     //Email already exist
     @ExceptionHandler(EmailAlreadyExistException.class)
     public ResponseEntity<ErrorResponse> handleEmailAlreadyExistException(EmailAlreadyExistException ex,WebRequest request)

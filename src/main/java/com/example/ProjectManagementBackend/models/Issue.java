@@ -58,7 +58,7 @@ public class Issue {
 
     // userId of the person assigned to this issue
     @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(length = 36)
+    @Column(name = "assignee_id",length = 36)
     private UUID assigneeId;
 
     // userId of the reporter
@@ -83,6 +83,20 @@ public class Issue {
     @ManyToOne
     @JoinColumn(name = "epic_id")
     private Epic epic;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @ManyToOne
+    @JoinColumn(name = "parent_issue_id")
+    private Issue parentIssue;
+
+    @OneToMany(mappedBy = "parentIssue")
+    private List<Issue> subtasks;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id", insertable = false, updatable = false)
+    private User assignee;
 
     // Getters and Setters
     public UUID getId() { return id; }
@@ -156,5 +170,45 @@ public class Issue {
 
     public void setEpic(Epic epic) {
         this.epic = epic;
+    }
+
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(Instant completedAt) {
+        this.completedAt = completedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Issue getParentIssue() {
+        return parentIssue;
+    }
+
+    public void setParentIssue(Issue parentIssue) {
+        this.parentIssue = parentIssue;
+    }
+
+    public List<Issue> getSubtasks() {
+        return subtasks;
+    }
+
+    public void setSubtasks(List<Issue> subtasks) {
+        this.subtasks = subtasks;
+    }
+
+    public User getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(User assignee) {
+        this.assignee = assignee;
     }
 }

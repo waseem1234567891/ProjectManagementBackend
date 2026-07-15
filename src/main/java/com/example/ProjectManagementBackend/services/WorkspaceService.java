@@ -4,6 +4,7 @@ import com.example.ProjectManagementBackend.dto.workspace.*;
 import com.example.ProjectManagementBackend.exceptions.AccessDeniedException;
 import com.example.ProjectManagementBackend.exceptions.ResourceNotFoundException;
 import com.example.ProjectManagementBackend.exceptions.WorkspaceNameAlreadyExistException;
+import com.example.ProjectManagementBackend.exceptions.WorkspaceNotFoundException;
 import com.example.ProjectManagementBackend.models.User;
 import com.example.ProjectManagementBackend.models.Workspace;
 import com.example.ProjectManagementBackend.models.WorkspaceInvitation;
@@ -151,24 +152,25 @@ public class WorkspaceService {
 
         if (byId.isEmpty())
         {
-            throw new ResourceNotFoundException("workspace not found...");
+            throw new WorkspaceNotFoundException("workspace not found...");
         }
         Workspace workspace=byId.get();
-        //only admin can send invitation
+        //only admin and Owner  can send invitation
         UUID currentUserId = userService.getCurrentUser().getId();
 
 
-        boolean isAdmin = workspaceMemberRepository
-                .existsByWorkspaceAndUserIdAndRole(workspace, currentUserId, WorkspaceRole.ADMIN);
+        boolean canInvite = workspaceMemberRepository
+                .existsByWorkspaceAndUserIdAndRoleIn(workspace, currentUserId, List.of(WorkspaceRole.ADMIN, WorkspaceRole.OWNER));
 
-        if (!isAdmin) {
-            throw new AccessDeniedException("Only admins can invite users");
+        if (!canInvite) {
+            throw new AccessDeniedException("Only Admins or Owner can invite users");
         }
         Optional<User> invitedUser = userRepo.findByEmail(dto.getEmail());
 
         if (invitedUser.isEmpty()) {
             throw new ResourceNotFoundException("User with this email does not exist in the system");
         }
+
         boolean alreadyMember = workspaceMemberRepository
                 .existsByWorkspaceAndUser(workspace, invitedUser);
 
@@ -243,9 +245,9 @@ public class WorkspaceService {
 
         memberRepository.save(member);
 
-        // 7️⃣ Mark invitation as accepted
-        invitation.setAccepted(true);
-        workspaceInvitaionRepo.save(invitation);
+
+        // 7️⃣ Remove the invitation
+        workspaceInvitaionRepo.delete(invitation);
     }
 
 
@@ -255,6 +257,7 @@ public class WorkspaceService {
         return workspace.getWorkspaceMembers()
                 .stream()
                 .map(member -> new WorkspaceMemberDto(
+                        member.getId(),
                         member.getUser().getId(),
                         member.getUser().getFirstName(),
                         member.getUser().getEmail(),

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -85,7 +86,7 @@ public class SprintService {
         if (sprint.getStatus() != SprintStatus.ACTIVE) {
             throw new RuntimeException("Invalid Sprint");
         }
-
+         sprint.setCompletedAt(LocalDateTime.now());
         List<Issue> issues = sprint.getIssues();
 
         List<Issue> unfinishedIssues = issues.stream()
@@ -158,9 +159,13 @@ public class SprintService {
     }
 
     public SprintResponseDto getActiveSprint(UUID workspaceId) {
-        Sprint sprint = sprintRepo.findByWorkspaceIdAndStatus(workspaceId, SprintStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException("No active sprint found"));
-        return toDto(sprint);
+        return sprintRepo.findByWorkspaceIdAndStatus(workspaceId, SprintStatus.ACTIVE)
+                .map(this::toDto)
+                .orElseGet(() -> {
+                    SprintResponseDto dto = new SprintResponseDto();
+                    dto.setMessage("No active sprint found");
+                    return dto;
+                });
     }
 
     public void deleteSprint(UUID sprintId) {

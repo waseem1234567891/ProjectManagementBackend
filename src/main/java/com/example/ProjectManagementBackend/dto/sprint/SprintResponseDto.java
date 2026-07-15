@@ -15,6 +15,7 @@ public class SprintResponseDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private Instant createdAt;
+    private String message;
 
     public SprintResponseDto() {
     }
@@ -54,4 +55,12 @@ public class SprintResponseDto {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }
